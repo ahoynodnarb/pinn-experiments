@@ -147,6 +147,7 @@ def plot_solutions(model):
 
 if __name__ == "__main__":
     CHECKPOINT_PATH = "./checkpoints/"
+    os.makedirs(CHECKPOINT_PATH, exist_ok=True)
 
     N_COLLOCATION = 2540
     N_BOUNDARY = 80

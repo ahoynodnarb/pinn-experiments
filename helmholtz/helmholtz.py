@@ -82,9 +82,6 @@ def train_model(
         num_boundary=n_boundary,
     )
 
-    # loss_history = []
-    # train_state = []
-
     lr = 1e-4
     model = dde.Model(train_data, net)
     restored = False
@@ -100,6 +97,7 @@ def train_model(
             restored = True
         lh_pre, ts_pre = model.train(iterations=n_iters, callbacks=[checkpointer_pre])
 
+    # second training run with l-bfgs not entirely necessary
     if post:
         optimizer_post = "L-BFGS"
         checkpointer_post = dde.callbacks.ModelCheckpoint(
@@ -111,8 +109,7 @@ def train_model(
             restored = True
         lh_post, ts_post = model.train(callbacks=[checkpointer_post])
 
-    # return model, lh_pre + lh_post, ts_pre + ts_post
-    return model, [], []
+    return model
 
 
 def plot_solutions(model):
@@ -160,20 +157,19 @@ def plot_solutions(model):
 
 if __name__ == "__main__":
     CHECKPOINT_PATH = "./checkpoints/"
+    os.makedirs(CHECKPOINT_PATH, exist_ok=True)
 
     N_COLLOCATION = 2540
     N_BOUNDARY = 300
     N_TRAIN_ITERS = 15000
 
     net = get_network()
-    model, loss_history, train_state = train_model(
+    model = train_model(
         net,
         N_COLLOCATION,
         N_BOUNDARY,
         N_TRAIN_ITERS,
         CHECKPOINT_PATH,
-        # pre=False,
-        # restore_path=os.path.join(CHECKPOINT_PATH, "ckpt-15000.pt"),
     )
-    # model.restore(os.path.join(CHECKPOINT_PATH, "ckpt-14000.pt"))
+    # model.restore(os.path.join(CHECKPOINT_PATH, "ckpt-15000.pt"))
     plot_solutions(model)
