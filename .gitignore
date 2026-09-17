@@ -1,0 +1,4 @@
+.venv/
+deepxde/
+**/checkpoints/
+.DS_Store
