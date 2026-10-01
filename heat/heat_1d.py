@@ -20,7 +20,7 @@ alpha = 0.1
 T = 1
 
 
-def u_true(data):
+def solution(data):
     x, t = data.T
     return np.exp(-alpha * np.pi**2 * t) * np.sin(np.pi * x)
 
@@ -100,7 +100,7 @@ def plot_solutions(model):
 
     test_points = np.vstack([xx.ravel(), tt.ravel()]).T
 
-    u_true = u_true(test_points)
+    u_true = solution(test_points)
     u_pred = model.predict(test_points).ravel()
 
     fig = plt.figure(figsize=(8, 6))
