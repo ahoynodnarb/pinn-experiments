@@ -15,6 +15,11 @@ import deepxde as dde
 k = 2 * np.pi
 
 
+class EndCheckpointer(dde.callbacks.ModelCheckpoint):
+    def on_train_end(self):
+        self.on_epoch_end()
+
+
 def solution(data):
     x, y = data.T
     return np.sin(k * x) * np.sin(k * y)
@@ -54,6 +59,16 @@ def get_network():
     return network
 
 
+def run_training_instance(
+    model, optimizer, ckpt_path, iters=None, lr=None, restore_path=None
+):
+    checkpointer = EndCheckpointer(ckpt_path, verbose=1, period=1000)
+    model.compile(optimizer=optimizer, lr=lr)
+    if restore_path is not None:
+        model.restore(restore_path)
+    model.train(iterations=iters, callbacks=[checkpointer])
+
+
 def train_model(
     net,
     n_collocation,
@@ -84,30 +99,26 @@ def train_model(
 
     lr = 1e-4
     model = dde.Model(train_data, net)
-    restored = False
 
     if pre:
-        optimizer_pre = "adam"
-        checkpointer_pre = dde.callbacks.ModelCheckpoint(
-            ckpt_path_pre, verbose=1, period=1000
+        run_training_instance(
+            model,
+            "adam",
+            ckpt_path_pre,
+            iters=n_iters,
+            lr=lr,
+            restore_path=restore_path,
         )
-        model.compile(optimizer_pre, lr)
-        if not restored and restore_path is not None:
-            model.restore(restore_path)
-            restored = True
-        lh_pre, ts_pre = model.train(iterations=n_iters, callbacks=[checkpointer_pre])
+        restore_path = None
 
-    # second training run with l-bfgs not entirely necessary
     if post:
-        optimizer_post = "L-BFGS"
-        checkpointer_post = dde.callbacks.ModelCheckpoint(
-            ckpt_path_post, verbose=1, period=100
+        run_training_instance(
+            model,
+            "L-BFGS",
+            ckpt_path_post,
+            restore_path=restore_path,
         )
-        model.compile(optimizer_post)
-        if not restored and restore_path is not None:
-            model.restore(restore_path)
-            restored = True
-        lh_post, ts_post = model.train(callbacks=[checkpointer_post])
+        restore_path = None
 
     return model
 
@@ -121,6 +132,8 @@ def plot_solutions(model):
 
     u_pred = model.predict(test_points).ravel()
     u_true = solution(test_points)
+
+    print("Mean squared testing error: ", np.mean((u_true - u_pred) ** 2))
 
     fig = plt.figure(figsize=(8, 6))
     ax = fig.add_subplot(projection="3d")
@@ -171,5 +184,4 @@ if __name__ == "__main__":
         N_TRAIN_ITERS,
         CHECKPOINT_PATH,
     )
-    # model.restore(os.path.join(CHECKPOINT_PATH, "ckpt-15000.pt"))
     plot_solutions(model)

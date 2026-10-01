@@ -1,5 +1,11 @@
-import jax.numpy as jnp
 import matplotlib.pyplot as plt
+import numpy as np
+import torch
+
+if torch.mps.is_available():
+    torch.set_default_device("mps")
+elif torch.cuda.is_available():
+    torch.set_default_device("cuda")
 
 import deepxde as dde
 
@@ -11,11 +17,11 @@ import deepxde as dde
 
 
 def f(x):
-    return jnp.pi**2 * jnp.sin(jnp.pi * x)
+    return torch.pi**2 * torch.sin(torch.pi * x)
 
 
 def residual(x, y):
-    dy_xx, _ = dde.grad.hessian(y, x)
+    dy_xx = dde.grad.hessian(y, x)
     return -dy_xx - f(x)
 
 
@@ -62,15 +68,11 @@ model = dde.Model(data, network)
 model.compile(optimizer, lr)
 loss_history, train_state = model.train(iterations=n_iters)
 
-dde.saveplot(loss_history, train_state, issave=True, isplot=True)
-
-# Optional: Restore the saved model with the smallest training loss
-# model.restore(f"model/model-{train_state.best_step}.ckpt", verbose=1)
-# Plot PDE residual
-x = dde.geometry.uniform_points(1000, True)
-y = model.predict(x, operator=residual)
+x = np.random.uniform(0, 1, 1000)
+u_true = np.sin(np.pi * x)
+u_pred = model.predict(x[:, None]).ravel()
+print(f"test MSE: {np.mean((u_true - u_pred) ** 2)}")
 plt.figure()
-plt.plot(x, y)
-plt.xlabel("x")
-plt.ylabel("PDE residual")
+plt.scatter(x, u_true, color="blue", label="Analytic Solution")
+plt.scatter(x, u_pred, color="crimson", label="PINN Solution")
 plt.show()
