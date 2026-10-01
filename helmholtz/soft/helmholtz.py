@@ -8,9 +8,8 @@ if torch.mps.is_available():
 elif torch.cuda.is_available():
     torch.set_default_device("cuda")
 
-import matplotlib.pyplot as plt
-
 import deepxde as dde
+import matplotlib.pyplot as plt
 
 k = 2 * np.pi
 
