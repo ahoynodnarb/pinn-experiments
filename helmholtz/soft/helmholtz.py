@@ -14,11 +14,6 @@ import matplotlib.pyplot as plt
 k = 2 * np.pi
 
 
-class EndCheckpointer(dde.callbacks.ModelCheckpoint):
-    def on_train_end(self):
-        self.on_epoch_end()
-
-
 def solution(data):
     x, y = data.T
     return np.sin(k * x) * np.sin(k * y)
@@ -61,11 +56,11 @@ def get_network():
 def run_training_instance(
     model, optimizer, ckpt_path, iters=None, lr=None, restore_path=None
 ):
-    checkpointer = EndCheckpointer(ckpt_path, verbose=1, period=1000)
+    checkpointer = dde.callbacks.ModelCheckpoint(ckpt_path, verbose=1, period=1000)
     model.compile(optimizer=optimizer, lr=lr)
     if restore_path is not None:
         model.restore(restore_path)
-    model.train(iterations=iters, callbacks=[checkpointer])
+    model.train(iterations=iters, callbacks=[checkpointer], model_save_path=ckpt_path)
 
 
 def train_model(

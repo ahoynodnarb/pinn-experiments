@@ -14,18 +14,18 @@ import matplotlib.pyplot as plt
 k = 2 * np.pi
 
 
-class EndCheckpointer(dde.callbacks.ModelCheckpoint):
-    def on_train_end(self):
-        self.on_epoch_end()
+class HardDirichlet2DFNN(dde.nn.FNN):
+    # our distance function phi: [0, 1] -> [0, 1]
+    @staticmethod
+    def phi_poly(t, n=1):
+        return 1 - (2 * (t - 1 / 2)) ** (2 * n)
 
-
-class HardDirichlet1DFNN(dde.nn.FNN):
     def forward(self, data):
         N = super().forward(data)
         x, y = data.T
         x = x[:, None]
         y = y[:, None]
-        return x * (1 - x) * y * (1 - y) * N
+        return self.phi_poly(x) * self.phi_poly(y) * N
 
 
 def solution(data):
@@ -54,7 +54,7 @@ def get_network():
     activation = "sin"
     initializer = "Glorot normal"
     # fully connected neural network; in this case an MLP
-    network = HardDirichlet1DFNN(layers, activation, initializer)
+    network = HardDirichlet2DFNN(layers, activation, initializer)
 
     return network
 
@@ -62,11 +62,11 @@ def get_network():
 def run_training_instance(
     model, optimizer, ckpt_path, iters=None, lr=None, restore_path=None
 ):
-    checkpointer = EndCheckpointer(ckpt_path, verbose=1, period=1000)
+    checkpointer = dde.callbacks.ModelCheckpoint(ckpt_path, verbose=1, period=1000)
     model.compile(optimizer=optimizer, lr=lr)
     if restore_path is not None:
         model.restore(restore_path)
-    model.train(iterations=iters, callbacks=[checkpointer])
+    model.train(iterations=iters, callbacks=[checkpointer], model_save_path=ckpt_path)
 
 
 def train_model(
